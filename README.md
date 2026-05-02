@@ -152,6 +152,21 @@ jupyter lab appliance_sentiment_analysis.ipynb
 | 13 | Summary — all fixes and key findings |
 
 ---
+## 🚀 Engineering Transferability: From NLP to RAG
+
+While this project focuses on sentiment classification, the architectural patterns and data engineering methodologies employed are directly transferable to **Production-Grade RAG (Retrieval-Augmented Generation)** and **LLM Orchestration**.
+
+### 🏗️ Shared ETL & Architecture Patterns
+The "plumbing" of this project mirrors the core requirements of a high-scale RAG pipeline:
+
+*   **Scalable Text Pre-processing**: The use of **PySpark** for data normalization and cleaning is the same foundation required for high-volume document "chunking" and preparation for vector ingestion.
+*   **Vector Space Fundamentals**: Transitioning from **GloVe word embeddings** to **Dense Vector Embeddings** (like OpenAI or HuggingFace) utilizes the same mathematical principles of mapping semantic meaning into a coordinate space for retrieval.
+*   **Modular Pipeline Design**: The separation of model logic (`src/models`) from evaluation logic ensures that the system is "pluggable"—a necessity when swapping out embedding models or LLMs in a RAG architecture.
+*   **CI/CD for AI Systems**: The **GitHub Actions** workflow implemented here—validating model builds and business logic—is a critical component of **MLOps**. It ensures that as a RAG "knowledge base" grows, the system remains reliable and mathematically sound.
+
+### 📈 Business Impact Integration
+Just as this project calculates the financial "Net Advantage" of sentiment detection, these same logic modules can be adapted to monitor **RAG Retrieval Quality** and **LLM Cost-to-Value ratios**, ensuring AI deployments provide measurable business ROI.
+---
 ---
 
 ## ── Key Engineering Improvements
