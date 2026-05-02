@@ -1,0 +1,98 @@
+name: Sentiment Analysis NLP Pipeline CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -c "import nltk; nltk.download('stopwords', quiet=True)"
+
+      - name: Check 1 — Verify PySpark version attribute
+        run: |
+          python -c "
+          import pyspark
+          # FIX verified: use __version__ not .version
+          v = pyspark.__version__
+          assert isinstance(v, str) and len(v) > 0
+          print(f'PySpark version check PASS: {v}')
+          "
+
+      - name: Check 2 — Verify LSTM model builds and outputs sigmoid
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          import numpy as np
+          from src.models.sentiment_models import build_lstm_model
+          model = build_lstm_model(vocab_size=5000, embed_dim=100, maxlen=100)
+          assert model.loss == 'binary_crossentropy'
+          dummy = np.zeros((4, 100), dtype=np.int32)
+          pred  = model.predict(dummy, verbose=0)
+          assert pred.shape == (4, 1)
+          assert (pred >= 0).all() and (pred <= 1).all()
+          print(f'LSTM build PASS — {model.count_params():,} parameters')
+          "
+
+      - name: Check 3 — Verify Conv1D and BiLSTM build
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          import numpy as np
+          from src.models.sentiment_models import build_conv1d_model, build_bilstm_model
+          dummy = np.zeros((4, 100), dtype=np.int32)
+          for name, fn in [('Conv1D', build_conv1d_model), ('BiLSTM', build_bilstm_model)]:
+              m = fn(vocab_size=5000, embed_dim=100, maxlen=100)
+              pred = m.predict(dummy, verbose=0)
+              assert pred.shape == (4, 1)
+              print(f'{name} build PASS — {m.count_params():,} parameters')
+          "
+
+      - name: Check 4 — Verify evaluation metrics module
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          import numpy as np
+          from src.evaluation.metrics import evaluate_predictions
+          y_true = np.array([0,0,1,1,0,1,0,1])
+          y_prob = np.array([0.1,0.2,0.8,0.9,0.3,0.7,0.15,0.85])
+          res = evaluate_predictions(y_true, y_prob, 'TestModel')
+          for key in ['accuracy','precision','recall','f1','roc_auc']:
+              assert key in res, f'Missing {key}'
+              assert 0 <= res[key] <= 1, f'{key} out of range: {res[key]}'
+          print(f'Metrics PASS — AUC={res[\"roc_auc\"]:.3f}')
+          "
+
+      - name: Check 5 — Verify business impact module
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          import numpy as np
+          from src.evaluation.business_impact import (
+              ReviewImpactConfig, calculate_sentiment_impact,
+              compare_to_baseline
+          )
+          config = ReviewImpactConfig()
+          y_true = np.array([0,0,1,1,0,1,1,0,1,0])
+          y_pred = np.array([0,0,1,0,0,1,1,0,1,1])
+          result = calculate_sentiment_impact(y_true, y_pred, 'TestModel', config)
+          assert result.net_value != 0
+          human, adv = compare_to_baseline(result, y_true, config)
+          assert isinstance(adv, float)
+          print(f'Business impact PASS — net=R{result.net_value:,.0f} | advantage=R{adv:,.0f}')
+          "

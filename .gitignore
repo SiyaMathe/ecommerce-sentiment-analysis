@@ -1,0 +1,37 @@
+# --- Environments ---
+.venv/
+venv/
+env/
+bin/
+obj/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python
+
+# --- Data & Large Files (Keep metadata, ignore heavy data) ---
+data/*
+!data/.gitkeep
+*.json
+*.csv
+*.gz
+*.txt
+!requirements.txt
+
+# --- Models ---
+# We want to keep the architecture (.py) but ignore the heavy weights (.keras)
+models/
+src/models/__pycache__/
+*.keras
+*.h5
+*.pkl
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
